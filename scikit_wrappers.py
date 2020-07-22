@@ -23,6 +23,7 @@ import sklearn
 import sklearn.svm
 import sklearn.externals
 import sklearn.model_selection
+from tqdm import tqdm
 
 import utils
 import losses
@@ -250,7 +251,7 @@ class TimeSeriesEncoderClassifier(sklearn.base.BaseEstimator,
         while i < self.nb_steps:
             if verbose:
                 print('Epoch: ', epochs + 1)
-            for batch in train_generator:
+            for batch in tqdm(train_generator):
                 if self.cuda:
                     batch = batch.cuda(self.gpu)
                 self.optimizer.zero_grad()
@@ -388,7 +389,7 @@ class TimeSeriesEncoderClassifier(sklearn.base.BaseEstimator,
             min(window_batch_size, numpy.shape(X)[2] - window + 1),
             numpy.shape(X)[1], window
         ))
-        for b in range(numpy.shape(X)[0]):
+        for b in tqdm(range(numpy.shape(X)[0])):
             for i in range(math.ceil(
                 (numpy.shape(X)[2] - window + 1) / window_batch_size)
             ):
