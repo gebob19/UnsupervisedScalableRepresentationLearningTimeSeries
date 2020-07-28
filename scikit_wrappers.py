@@ -25,6 +25,10 @@ import sklearn.externals
 import sklearn.model_selection
 from tqdm import tqdm
 
+import sys 
+import pathlib 
+sys.path.append(str(pathlib.Path.home()/'Documents/stocks/penguin/scan/models/UnsupervisedScalableRepresentationLearningTimeSeries/'))
+
 import utils
 import losses
 import networks
@@ -500,6 +504,9 @@ class CausalCNNEncoderClassifier(TimeSeriesEncoderClassifier):
         if cuda:
             encoder.cuda(gpu)
         return encoder
+
+    def update_in_channels(self, new_in_channels):
+        self.encoder.update_in_channels(new_in_channels)
 
     def __encoder_params(self, in_channels, channels, depth, reduced_size,
                          out_channels, kernel_size):

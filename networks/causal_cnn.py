@@ -157,25 +157,42 @@ class CausalCNN(torch.nn.Module):
                  kernel_size):
         super(CausalCNN, self).__init__()
 
-        layers = []  # List of causal convolution blocks
-        dilation_size = 1  # Initial dilation size
+        self.in_channels = in_channels
+        self.channels = channels
+        self.depth = depth
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.dilation_size = 1
+
+        self.layers = []  # List of causal convolution blocks
+        dilation_size = 1  # Initial dilsation size
 
         for i in range(depth):
             in_channels_block = in_channels if i == 0 else channels
-            layers += [CausalConvolutionBlock(
+            self.layers += [CausalConvolutionBlock(
                 in_channels_block, channels, kernel_size, dilation_size
             )]
             dilation_size *= 2  # Doubles the dilation size at each step
 
         # Last layer
-        layers += [CausalConvolutionBlock(
+        self.layers += [CausalConvolutionBlock(
             channels, out_channels, kernel_size, dilation_size
         )]
 
-        self.network = torch.nn.Sequential(*layers)
+        self.network = self.get_network()
+
+    def get_network(self):
+        return torch.nn.Sequential(*self.layers)
+
+    def update_in_channels(self, new_in_channels):
+        self.layers[0] = CausalConvolutionBlock(
+            new_in_channels, self.channels, self.kernel_size, self.dilation_size
+        ).double()
+        self.network = self.get_network()
 
     def forward(self, x):
-        return self.network(x)
+        x = self.network(x)
+        return x
 
 
 class CausalCNNEncoder(torch.nn.Module):
@@ -200,15 +217,22 @@ class CausalCNNEncoder(torch.nn.Module):
     def __init__(self, in_channels, channels, depth, reduced_size,
                  out_channels, kernel_size):
         super(CausalCNNEncoder, self).__init__()
-        causal_cnn = CausalCNN(
+        self.causal_cnn = CausalCNN(
             in_channels, channels, depth, reduced_size, kernel_size
         )
-        reduce_size = torch.nn.AdaptiveMaxPool1d(1)
-        squeeze = SqueezeChannels()  # Squeezes the third dimension (time)
-        linear = torch.nn.Linear(reduced_size, out_channels)
-        self.network = torch.nn.Sequential(
-            causal_cnn, reduce_size, squeeze, linear
+        self.reduce_size = torch.nn.AdaptiveMaxPool1d(1)
+        self.squeeze = SqueezeChannels()  # Squeezes the third dimension (time)
+        self.linear = torch.nn.Linear(reduced_size, out_channels)
+        self.network = self.get_network()
+
+    def get_network(self):
+        return torch.nn.Sequential(
+            self.causal_cnn, self.reduce_size, self.squeeze, self.linear
         )
+
+    def update_in_channels(self, new_in_channels):
+        self.causal_cnn.update_in_channels(new_in_channels)
+        self.network = self.get_network()
 
     def forward(self, x):
         return self.network(x)
