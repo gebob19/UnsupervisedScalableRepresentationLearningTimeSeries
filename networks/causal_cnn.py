@@ -185,9 +185,10 @@ class CausalCNN(torch.nn.Module):
         return torch.nn.Sequential(*self.layers)
 
     def update_in_channels(self, new_in_channels):
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.layers[0] = CausalConvolutionBlock(
             new_in_channels, self.channels, self.kernel_size, self.dilation_size
-        ).double()
+        ).double().to(device)
         self.network = self.get_network()
 
     def forward(self, x):
