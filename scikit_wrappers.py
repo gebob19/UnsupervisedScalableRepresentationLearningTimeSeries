@@ -27,9 +27,9 @@ from tqdm import tqdm
 
 import sys 
 import pathlib 
-sys.path.append(str(pathlib.Path.home()/'Documents/stocks/penguin/scan/models/UnsupervisedScalableRepresentationLearningTimeSeries/'))
+sys.path.append(str(pathlib.Path.home()/'Documents/stocks/penguin/stock/reinforcement/USTS/'))
 
-import utils
+import utils2
 import losses
 import networks
 
@@ -238,7 +238,7 @@ class TimeSeriesEncoderClassifier(sklearn.base.BaseEstimator,
             train_size = numpy.shape(X)[0]
             ratio = train_size // nb_classes
 
-        train_torch_dataset = utils.Dataset(X)
+        train_torch_dataset = utils2.Dataset(X)
         train_generator = torch.utils.data.DataLoader(
             train_torch_dataset, batch_size=self.batch_size, shuffle=True
         )
@@ -340,7 +340,7 @@ class TimeSeriesEncoderClassifier(sklearn.base.BaseEstimator,
         # Check if the given time series have unequal lengths
         varying = bool(numpy.isnan(numpy.sum(X)))
 
-        test = utils.Dataset(X)
+        test = utils2.Dataset(X)
         test_generator = torch.utils.data.DataLoader(
             test, batch_size=batch_size if not varying else 1
         )
@@ -372,7 +372,7 @@ class TimeSeriesEncoderClassifier(sklearn.base.BaseEstimator,
         self.encoder = self.encoder.train()
         return features
 
-    def encode_window(self, X, window, batch_size=50, window_batch_size=10000):
+    def encode_window(self, X, window, batch_size=50, window_batch_size=10000, verbose=True):
         """
         Outputs the representations associated to the input by the encoder,
         for each subseries of the input of the given size (sliding window
@@ -393,7 +393,11 @@ class TimeSeriesEncoderClassifier(sklearn.base.BaseEstimator,
             min(window_batch_size, numpy.shape(X)[2] - window + 1),
             numpy.shape(X)[1], window
         ))
-        for b in tqdm(range(numpy.shape(X)[0])):
+
+        tmp = range(numpy.shape(X)[0])
+        if verbose: tmp = tqdm(tmp)
+
+        for b in tmp:
             for i in range(math.ceil(
                 (numpy.shape(X)[2] - window + 1) / window_batch_size)
             ):
@@ -538,7 +542,7 @@ class CausalCNNEncoderClassifier(TimeSeriesEncoderClassifier):
         # Check if the given time series have unequal lengths
         varying = bool(numpy.isnan(numpy.sum(X)))
 
-        test = utils.Dataset(X)
+        test = utils2.Dataset(X)
         test_generator = torch.utils.data.DataLoader(
             test, batch_size=batch_size if not varying else 1
         )
